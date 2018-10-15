@@ -1,0 +1,32 @@
+{
+  "name": "dialogflow-agent-to-csv",
+  "author": "Bernard Chhun<bernard.chhun@gmail.com>",
+  "version": "0.0.1",
+  "description": "A simple Express app where you upload a dialogflow agent and receive csv files of all its training phrases and its answers",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.16.4",
+    "fs-extra": "^7.0.0",
+    "idx": "^2.4.0",
+    "json2csv": "^4.2.1",
+    "multer": "^1.4.1",
+    "unzip": "^0.1.11",
+    "express-handlebars": "^3.0.0"
+  },
+  "engines": {
+    "node": "8.x"
+  },
+  "repository": {
+    "url": "https://api.glitch.com/dialogflow-agent-to-csv/git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "node",
+    "glitch",
+    "express",
+    "dialogflow"
+  ]
+}
