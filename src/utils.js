@@ -1,14 +1,20 @@
 const path = require('path');
 const AGENT_UPLOAD_PATH = process.env.AGENT_UPLOAD_PATH || '/tmp';
-const AGENT_UNZIP_PATH = [AGENT_UPLOAD_PATH, 'unzipped'].join(path.sep);
+const AGENT_UNZIP_PATH = [AGENT_UPLOAD_PATH, 'unzipped'];
+const AGENT_CSV_PATH = [AGENT_UPLOAD_PATH, 'csv'];
 
 const fs = require('fs-extra');
 const util = require('util');
 const json2csv = require('json2csv');
 const unzipper = require('unzipper');
 
+fs.mkdirs(AGENT_CSV_PATH.join(path.sep), (err) => {
+  if (err) return console.error(err);
+  console.log('csv path created successfully');
+});
+
 const dirExists = (folderPath) => {
-  let resolvedPath = path.resolve(...folderPath);
+  const resolvedPath = path.resolve(...folderPath);
   return fs.existsSync(resolvedPath);
 };
 
@@ -22,17 +28,13 @@ const getAbsolutePath = (folders, filename = null) => {
   return path.resolve(...completePath);
 };
 
-exports.getView = function(templateName, context = {}) {
-  // foo
-}
-
 exports.errorMsg = (msg) => {
   console.log('***');
   console.log(msg);
   console.log('***');
 };
 
-exports.getAbsolutePath;
+exports.getAbsolutePath = getAbsolutePath;
 
 exports.extractLang = (userSaysPath) => {
   const basename = path.basename(userSaysPath, '.json');
@@ -54,7 +56,7 @@ exports.extractIntentName = (currentPath) => {
 
 exports.getAllFilesFromPath = (dirPath, filterFunc = null) => {
   if (!dirExists(dirPath)) {
-      throw new Error(`${dirPath.toString()} does not exists`);
+    throw new Error(`${dirPath.toString()} does not exists`);
   }
 
   const absolutePath = getAbsolutePath(dirPath);
@@ -62,7 +64,7 @@ exports.getAllFilesFromPath = (dirPath, filterFunc = null) => {
   const jsonFilesOnly = (f) => f.endsWith('json') === true;
   const extractAbsolutePath = (f) => getAbsolutePath(dirPath.concat([f]));
 
-  let files = fs.readdirSync(absolutePath)
+  const files = fs.readdirSync(absolutePath)
       .filter(noDotfiles)
       .filter(jsonFilesOnly)
       .map(extractAbsolutePath);
@@ -72,45 +74,42 @@ exports.getAllFilesFromPath = (dirPath, filterFunc = null) => {
 
 exports.writeCsvFile = (options, csvContent, filename) => {
   return new Promise((resolve, reject) => {
-    try {
-      const csv = json2csv.parse(csvContent, options);
-      fs.writeFileSync(filename, csv, 'utf8');
-      resolve(filename);
-    } catch (err) {
-      reject(err);
-    };
-  })
+    const csv = json2csv.parse(csvContent, options);
 
+    fs.writeFile(filename, csv, 'utf8').then(() => {
+      resolve(filename);
+    }).catch((error) => {
+      console.error(error);
+    });
+  });
 };
 
-exports.unzipFile = function(pathToZipFile) {
-  return new Promise((resolve, reject) => {
+exports.unzipFile = (pathToZipFile) => {
+  return new Promise((resolve, reject) => {
     const filename = path.basename(pathToZipFile, '.zip');
-    const unzipPath = [AGENT_UNZIP_PATH, filename].join(path.sep);
+    const unzipPath = [...AGENT_UNZIP_PATH, filename];
     const extractOptions = {
-      path: unzipPath
+      path: unzipPath.join(path.sep),
     };
 
     fs.createReadStream(pathToZipFile)
-      .pipe(unzipper.Extract(extractOptions))
-      .on('close', () => {
-        resolve(unzipPath);
-      })
-      .on('error', (e) => {
-        reject(e);
-      });
-  })
-}
+        // eslint-disable-next-line new-cap
+        .pipe(unzipper.Extract(extractOptions))
+        .on('close', () => {
+          resolve(unzipPath);
+        })
+        .on('error', (error) => {
+          reject(error);
+        });
+  });
+};
 
-/*
- * delete all zip files in the AGENT_UPLOAD_PATH folder
- */
-exports.deleteZipFiles = function() {
-  const extractAbsolutePath = (f) => getAbsolutePath([AGENT_UPLOAD_PATH].concat(f));
+exports.deleteZipFiles = () => {
+  const extractAbsPath = (f) => getAbsolutePath([AGENT_UPLOAD_PATH].concat(f));
   const zipFilesOnly = (f) => f.endsWith('zip') === true;
   const files = fs.readdirSync(AGENT_UPLOAD_PATH)
-    .filter(zipFilesOnly)
-    .map(extractAbsolutePath);
+      .filter(zipFilesOnly)
+      .map(extractAbsPath);
 
   files.forEach((f) => {
     fs.unlink(f, (err) => {
@@ -119,7 +118,8 @@ exports.deleteZipFiles = function() {
       }
     });
   });
-}
+};
 
 exports.AGENT_UPLOAD_PATH = AGENT_UPLOAD_PATH;
 exports.AGENT_UNZIP_PATH = AGENT_UNZIP_PATH;
+exports.AGENT_CSV_PATH = AGENT_CSV_PATH;
