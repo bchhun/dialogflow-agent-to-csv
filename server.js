@@ -1,3 +1,4 @@
+
 const idx = require('idx');
 const utils = require('./src/utils');
 const extractAnswers = require('./src/extractAnswers');
@@ -32,19 +33,22 @@ app.get('/', function(request, response) {
 
 app.post('/extract', upload.single('agentZipFile'), function(request, response) {
   const currentPath = idx(request, (_) => _.file.path);
-  
+
   if(currentPath === undefined) {
     response.redirect(302, '/');
     return;
   }
-  
-  if (utils.unzipFile(currentPath)) {
-    console.log('unzipped !');
-  }
-  response.render('extracted');
+
+  utils.unzipFile(currentPath).then((unzippedPath) => {
+    console.log(unzippedPath);
+    response.render('extracted');
+  }).catch((err) => {
+    console.error(err);
+    response.redirect(302, '/');
+  });
 });
 
 // listen for requests :)
-var listener = app.listen(process.env.PORT, function() {
+var listener = app.listen(process.env.PORT || 3000, function() {
   console.log('Your app is listening on port ' + listener.address().port);
 });

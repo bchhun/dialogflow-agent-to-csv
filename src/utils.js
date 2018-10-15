@@ -5,8 +5,7 @@ const AGENT_UNZIP_PATH = [AGENT_UPLOAD_PATH, 'unzipped'].join(path.sep);
 const fs = require('fs-extra');
 const util = require('util');
 const json2csv = require('json2csv');
-const unzip = require('unzip');
-
+const unzipper = require('unzipper');
 
 const dirExists = (folderPath) => {
   let resolvedPath = path.resolve(...folderPath);
@@ -81,20 +80,26 @@ exports.writeCsvFile = (options, csvContent, filename) => {
       reject(err);
     };
   })
-  
+
 };
 
-exports.unzipFile = function(path) {
-  const readStream = fs.createReadStream(path);
-  const writeStream = fs.createWriteStream(AGENT_UNZIP_PATH);
-  
-  try {
-    readStream.pipe(unzip.Parse()).pipe(writeStream);
-  } catch (err) {
-    return false;
-  }
-  
-  return true;
+exports.unzipFile = function(pathToZipFile) {
+  return new Promise((resolve, reject) => {
+    const filename = path.basename(pathToZipFile, '.zip');
+    const unzipPath = [AGENT_UNZIP_PATH, filename].join(path.sep);
+    const extractOptions = {
+      path: unzipPath
+    };
+
+    fs.createReadStream(pathToZipFile)
+      .pipe(unzipper.Extract(extractOptions))
+      .on('close', () => {
+        resolve(unzipPath);
+      })
+      .on('error', (e) => {
+        reject(e);
+      });
+  })
 }
 
 /*
@@ -106,7 +111,7 @@ exports.deleteZipFiles = function() {
   const files = fs.readdirSync(AGENT_UPLOAD_PATH)
     .filter(zipFilesOnly)
     .map(extractAbsolutePath);
-  
+
   files.forEach((f) => {
     fs.unlink(f, (err) => {
       if (!!err) {
