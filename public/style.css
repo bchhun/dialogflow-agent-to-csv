@@ -43,20 +43,22 @@ input {
   font-size: 16px;
 }
 
-button {
+button, .button {
   font-size: 16px;
   border-radius: 3px;
   background-color: lightgrey;
   border: 1px solid grey;
   box-shadow: 2px 2px teal;
   cursor: pointer;
+  text-decoration: none;
+  color: black;
 }
 
-button:hover {
+button:hover, .button:hover {
   background-color: yellow;
 }
 
-button:active {
+button:active, .button:active {
   box-shadow: none;
 }
 
