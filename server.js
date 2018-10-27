@@ -45,6 +45,9 @@ app.post('/extract', upload.single('agentZipFile'), (request, response) => {
       answers.extract(agentName, unzipPath, utils.AGENT_CSV_PATH),
       trainingPhrases.extract(agentName, unzipPath, utils.AGENT_CSV_PATH),
     ]).then(([answersFilename, trainingPhrasesFilename]) => {
+      answersFilename = answersFilename.replace('./public', '');
+      trainingPhrasesFilename = trainingPhrasesFilename.replace('./public', '');
+
       response.render('extracted', {
         answersFilename,
         trainingPhrasesFilename,

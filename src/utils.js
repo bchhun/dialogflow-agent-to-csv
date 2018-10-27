@@ -1,7 +1,7 @@
 const path = require('path');
 const AGENT_UPLOAD_PATH = process.env.AGENT_UPLOAD_PATH || '/tmp';
 const AGENT_UNZIP_PATH = [AGENT_UPLOAD_PATH, 'unzipped'];
-const AGENT_CSV_PATH = [AGENT_UPLOAD_PATH, 'csv'];
+const AGENT_CSV_PATH = ['./public', 'csv'];
 
 const fs = require('fs-extra');
 const util = require('util');
