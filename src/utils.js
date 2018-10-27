@@ -10,7 +10,7 @@ const unzipper = require('unzipper');
 
 fs.mkdirs(AGENT_CSV_PATH.join(path.sep), (err) => {
   if (err) return console.error(err);
-  console.log('csv path created successfully');
+  console.log(`csv path ${AGENT_CSV_PATH.join(path.sep)} created successfully`);
 });
 
 const dirExists = (folderPath) => {
