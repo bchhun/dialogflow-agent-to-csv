@@ -62,6 +62,16 @@ button:active, .button:active {
   box-shadow: none;
 }
 
+.button.warning {
+  background-color: red;
+  box-shadow: 2px 2px orange;
+  color: white;
+}
+
+.button.warning:hover {
+  background-color: purple;
+}
+
 li {
   margin-bottom: 5px;
 }

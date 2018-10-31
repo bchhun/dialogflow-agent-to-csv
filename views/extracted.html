@@ -5,4 +5,8 @@
 <li><a class="button" target='_blank' href="{{ answersFilename }}">Download the answers' file</a></li>
 <li><a class="button" target='_blank' href="{{ trainingPhrasesFilename }}">Download the training phrases's file</a></li>
 </ul>
+
+<a href="/delete/{{filePrefix}}" class="button warning">Delete my zip file and the generated CSV files on the server</a>
+
+<p>Don't worry too much if you don't delete them <i>right now</i>. I'm running a cronjob every <strong>15 minutes</strong> to delete all those uploaded files.</p>
 {% endblock main %}

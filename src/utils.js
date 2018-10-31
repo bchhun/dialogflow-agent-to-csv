@@ -1,10 +1,12 @@
 const path = require('path');
-const AGENT_UPLOAD_PATH = process.env.AGENT_UPLOAD_PATH || '/tmp';
-const AGENT_UNZIP_PATH = [AGENT_UPLOAD_PATH, 'unzipped'];
+const AGENT_UPLOAD_PATH = !!process.env.AGENT_UPLOAD_PATH ?
+    process.env.AGENT_UPLOAD_PATH.split(path.sep) : ['/tmp'];
+const AGENT_UNZIP_PATH = AGENT_UPLOAD_PATH.concat(['unzipped']);
 const AGENT_CSV_PATH = ['./public', 'csv'];
 
 const fs = require('fs-extra');
 const util = require('util');
+const rimraf = require('rimraf');
 const json2csv = require('json2csv');
 const unzipper = require('unzipper');
 
@@ -27,6 +29,38 @@ const getAbsolutePath = (folders, filename = null) => {
 
   return path.resolve(...completePath);
 };
+
+/**
+ * @param  {string[]} pathToDelete
+ * @param  {string} fileExtension
+ * @param  {function} anyOtherFilter
+ *
+ * @return {Promise<boolean>} a promised boolean
+ */
+function deleteFiles(pathToDelete, fileExtension, anyOtherFilter = null) {
+  const extractAbsPath = (f) => getAbsolutePath(pathToDelete.concat(f));
+  const currentFileExtensionOnly = (f) => f.endsWith(fileExtension) === true;
+
+  return new Promise((resolve, reject) => {
+    fs.readdir(pathToDelete.join(path.sep)).then((files) => {
+      const filesToDelete = files
+          .filter(currentFileExtensionOnly)
+          .filter(!!anyOtherFilter ? anyOtherFilter: () => true)
+          .map(extractAbsPath)
+          .map((f) => fs.unlink(f));
+
+      Promise.all(filesToDelete)
+          .then(() => resolve(true))
+          .catch((error) => {
+            console.debug(error);
+            reject(false);
+          });
+    }).catch((error) => {
+      console.debug(error);
+      reject(false);
+    });
+  });
+}
 
 exports.errorMsg = (msg) => {
   console.log('***');
@@ -104,22 +138,72 @@ exports.unzipFile = (pathToZipFile) => {
   });
 };
 
-exports.deleteZipFiles = () => {
-  const extractAbsPath = (f) => getAbsolutePath([AGENT_UPLOAD_PATH].concat(f));
-  const zipFilesOnly = (f) => f.endsWith('zip') === true;
-  const files = fs.readdirSync(AGENT_UPLOAD_PATH)
-      .filter(zipFilesOnly)
-      .map(extractAbsPath);
+const deleteZipFiles = (anyOtherFilterFunction = null) => {
+  return deleteFiles(AGENT_UPLOAD_PATH, 'zip', anyOtherFilterFunction);
+};
 
-  files.forEach((f) => {
-    fs.unlink(f, (err) => {
-      if (!!err) {
-        throw err;
+const deleteCsvFiles = (anyOtherFilterFunction = null) => {
+  return deleteFiles(AGENT_CSV_PATH, 'csv', anyOtherFilterFunction);
+};
+
+const deleteUnzippedFolders = (anyOtherFilterFunction = null) => {
+  return new Promise((resolve, reject) => {
+    const unzippedPathGlob = AGENT_UNZIP_PATH.concat(['*']);
+
+    if (!!anyOtherFilterFunction) {
+      fs.readdir(AGENT_UNZIP_PATH.join(path.sep)).then((folders) => {
+        const extractAbsPath = (f) => {
+          return getAbsolutePath(AGENT_UNZIP_PATH.concat(f));
+        };
+
+        const folderToDelete = folders
+            .filter(anyOtherFilterFunction)
+            .map(extractAbsPath).pop();
+
+        try {
+          rimraf(folderToDelete, function() {
+            resolve(true);
+          });
+        } catch (error) {
+          console.error(error);
+          reject(false);
+        }
+      });
+    } else {
+      try {
+        rimraf(unzippedPathGlob.join(path.sep), function() {
+          resolve(true);
+        });
+      } catch (error) {
+        console.error(error);
+        reject(false);
       }
+    }
+  });
+};
+
+const deleteEverything = (anyOtherFilterFunction = null) => {
+  return new Promise((resolve, reject) => {
+    Promise.all([
+      deleteZipFiles(anyOtherFilterFunction),
+      deleteCsvFiles(anyOtherFilterFunction),
+      deleteUnzippedFolders(anyOtherFilterFunction),
+    ]).then(([zipFilesDeleted, csvFilesDeleted, unzippedFoldersDeleted]) => {
+      resolve({
+        zipFilesDeleted,
+        csvFilesDeleted,
+        unzippedFoldersDeleted,
+      });
+    }).catch((error) => {
+      console.error(error);
+      reject({error});
     });
   });
 };
 
+exports.deleteZipFiles = deleteZipFiles;
+exports.deleteCsvFiles = deleteCsvFiles;
+exports.deleteEverything = deleteEverything;
 exports.AGENT_UPLOAD_PATH = AGENT_UPLOAD_PATH;
 exports.AGENT_UNZIP_PATH = AGENT_UNZIP_PATH;
 exports.AGENT_CSV_PATH = AGENT_CSV_PATH;
