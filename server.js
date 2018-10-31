@@ -1,6 +1,7 @@
 
 const idx = require('idx');
 const path = require('path');
+const uuidv4 = require('uuid/v4');
 const utils = require('./src/utils');
 const answers = require('./src/answers');
 const trainingPhrases = require('./src/trainingPhrases');
@@ -10,13 +11,16 @@ const nunjucks = require('express-nunjucks');
 const multer = require('multer');
 const storage = multer.diskStorage({
   destination: function(req, file, cb) {
-    cb(null, utils.AGENT_UPLOAD_PATH);
+    cb(null, utils.AGENT_UPLOAD_PATH.join(path.sep));
   },
   filename: function(req, file, cb) {
     cb(null, `${file.originalname.split('.')[0]}--${Date.now()}.zip`);
   },
 });
 const upload = multer({storage});
+
+const DELETE_ALL_UUID = !!process.env.DELETE_ALL_UUID ?
+    process.env.DELETE_ALL_UUID : uuidv4();
 
 const app = express();
 nunjucks(app, {});
@@ -47,16 +51,40 @@ app.post('/extract', upload.single('agentZipFile'), (request, response) => {
     ]).then(([answersFilename, trainingPhrasesFilename]) => {
       answersFilename = answersFilename.replace('./public', '');
       trainingPhrasesFilename = trainingPhrasesFilename.replace('./public', '');
+      const filePrefix = agentName;
 
       response.render('extracted', {
         answersFilename,
         trainingPhrasesFilename,
+        filePrefix,
       });
     });
   }).catch((err) => {
     console.error(err);
     response.redirect(302, '/');
   });
+});
+
+app.get(`/deleteAll/${DELETE_ALL_UUID}`, (request, response) => {
+  utils.deleteEverything()
+      .then((result) => {
+        response.json(result);
+      }).catch((error) => {
+        response.json(error);
+      });
+});
+
+app.get('/delete/:filePrefix', (request, response) => {
+  const filesThatStartsWith = (f) => {
+    return f.startsWith(request.params.filePrefix) === true;
+  };
+
+  utils.deleteEverything(filesThatStartsWith)
+      .then((result) => {
+        response.render('deleted');
+      }).catch((error) => {
+        response.json(error);
+      });
 });
 
 // listen for requests :)
