@@ -21,7 +21,7 @@
     "uuid": "^3.3.2"
   },
   "engines": {
-    "node": "8.x"
+    "node": ">=8.x"
   },
   "repository": {
     "url": "https://api.glitch.com/dialogflow-agent-to-csv/git"
